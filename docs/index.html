@@ -59,12 +59,48 @@
     .summary { font-size: 0.75rem; color: #888; line-height: 1.5; margin-top: 3px; }
     .card:hover .title-ja { color: #ccc; }
     .card:hover .title-en { color: #ccc; }
+    /* ── Password overlay ── */
+    #pw-overlay {
+      position: fixed; inset: 0; background: #f6f6f6;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    #pw-overlay.hidden { display: none; }
+    #pw-box {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    #pw-box h2 { font-size: 1rem; font-weight: 600; color: #111; letter-spacing: 0.05em; }
+    #pw-box input {
+      border: 1px solid #ddd; padding: 10px 14px; font-size: 0.9rem;
+      outline: none; width: 220px; background: #fff;
+    }
+    #pw-box input:focus { border-color: #aaa; }
+    #pw-box button {
+      width: 220px; padding: 10px; background: #111; color: #fff;
+      border: none; font-size: 0.85rem; cursor: pointer; letter-spacing: 0.05em;
+    }
+    #pw-box button:hover { background: #333; }
+    #pw-error { font-size: 0.78rem; color: #c00; }
+    #main-content { display: none; }
+    #main-content.visible { display: block; }
   </style>
 </head>
 <body>
-  <h1>Design Trends — 2026-05-22</h1>
-  <div class="meta">Generated on 2026-05-22T02:40:29.053Z</div>
-  
+  <!-- パスワード画面 -->
+  <div id="pw-overlay">
+    <div id="pw-box">
+      <h2>DESIGN TRENDS</h2>
+      <input type="password" id="pw-input" placeholder="Password" autofocus />
+      <div id="pw-error"></div>
+      <button onclick="checkPassword()">ENTER</button>
+    </div>
+  </div>
+
+  <!-- コンテンツ -->
+  <div id="main-content">
+    <h1>Design Trends — 2026-05-22</h1>
+    <div class="meta">Generated on 2026-05-22T02:55:54.261Z</div>
+    
       <section>
         <h2>Behance (Branding)</h2>
         <div class="grid">
@@ -636,16 +672,8 @@
             
           </div>
         </a>
-        <a class="card" href="https://dribbble.com/shots/26720509-AI-Agent-Finding-Focus-Time-on-Calendar" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/dribbble-04.png" alt="AI Agent — Finding Focus Time on Calendar" loading="lazy"></div>
-          <div class="card-body">
-            
-            <div class="title-en">AI Agent — Finding Focus Time on Calendar</div>
-            
-          </div>
-        </a>
         <a class="card" href="https://dribbble.com/shots/27399091-Session" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/dribbble-05.png" alt="Session" loading="lazy"></div>
+          <div class="card-img"><img src="images/dribbble-04.png" alt="Session" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">Session</div>
@@ -653,7 +681,7 @@
           </div>
         </a>
         <a class="card" href="https://dribbble.com/shots/27397182-Mobile-Gaming-UI-for-Avatar-Personalization" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/dribbble-06.png" alt="Mobile Gaming UI for Avatar Personalization" loading="lazy"></div>
+          <div class="card-img"><img src="images/dribbble-05.png" alt="Mobile Gaming UI for Avatar Personalization" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">Mobile Gaming UI for Avatar Personalization</div>
@@ -661,7 +689,7 @@
           </div>
         </a>
         <a class="card" href="https://dribbble.com/shots/27398724-Tillster-Logomark" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/dribbble-07.png" alt="Tillster Logomark" loading="lazy"></div>
+          <div class="card-img"><img src="images/dribbble-06.png" alt="Tillster Logomark" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">Tillster Logomark</div>
@@ -669,10 +697,18 @@
           </div>
         </a>
         <a class="card" href="https://dribbble.com/shots/27398749-Spotify-Icon-Animation-Idea" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/dribbble-08.png" alt="Spotify Icon Animation Idea" loading="lazy"></div>
+          <div class="card-img"><img src="images/dribbble-07.png" alt="Spotify Icon Animation Idea" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">Spotify Icon Animation Idea</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://dribbble.com/shots/27398479-Website-Design-for-a-Biopharmaceutical-Research-Company" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/dribbble-08.png" alt="Website Design for a Biopharmaceutical Research Company" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">Website Design for a Biopharmaceutical Research Company</div>
             
           </div>
         </a></div>
@@ -1156,8 +1192,16 @@
       <section>
         <h2>S5 Style</h2>
         <div class="grid">
+        <a class="card" href="https://www.s5-style.com/11623/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/s5-style-01.webp" alt="バーグハンバーグバーグ | おもしろい広告で話題化する" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">バーグハンバーグバーグ | おもしろい広告で話題化する</div>
+            
+          </div>
+        </a>
         <a class="card" href="https://www.s5-style.com/11622/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-01.webp" alt="doda PRESENTS: パ・リーグ球団 仕事図鑑2026" loading="lazy"></div>
+          <div class="card-img"><img src="images/s5-style-02.webp" alt="doda PRESENTS: パ・リーグ球団 仕事図鑑2026" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">doda PRESENTS: パ・リーグ球団 仕事図鑑2026</div>
@@ -1165,7 +1209,7 @@
           </div>
         </a>
         <a class="card" href="https://www.s5-style.com/11619/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-02.webp" alt="株式会社三笠・鋲螺 採用サイト" loading="lazy"></div>
+          <div class="card-img"><img src="images/s5-style-03.webp" alt="株式会社三笠・鋲螺 採用サイト" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">株式会社三笠・鋲螺 採用サイト</div>
@@ -1173,7 +1217,7 @@
           </div>
         </a>
         <a class="card" href="https://www.s5-style.com/11616/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-03.webp" alt="ハイブリッドホーム｜ 住まいの総合リフォーム・サービス" loading="lazy"></div>
+          <div class="card-img"><img src="images/s5-style-04.webp" alt="ハイブリッドホーム｜ 住まいの総合リフォーム・サービス" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">ハイブリッドホーム｜ 住まいの総合リフォーム・サービス</div>
@@ -1181,7 +1225,7 @@
           </div>
         </a>
         <a class="card" href="https://www.s5-style.com/11615/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-04.webp" alt="文化服装学院FPコース 2025年度卒業制作｜プロモ is _" loading="lazy"></div>
+          <div class="card-img"><img src="images/s5-style-05.webp" alt="文化服装学院FPコース 2025年度卒業制作｜プロモ is _" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">文化服装学院FPコース 2025年度卒業制作｜プロモ is _</div>
@@ -1189,7 +1233,7 @@
           </div>
         </a>
         <a class="card" href="https://www.s5-style.com/11614/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-05.webp" alt="株式会社アールビーズ 創立50周年特設サイト" loading="lazy"></div>
+          <div class="card-img"><img src="images/s5-style-06.webp" alt="株式会社アールビーズ 創立50周年特設サイト" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">株式会社アールビーズ 創立50周年特設サイト</div>
@@ -1197,7 +1241,7 @@
           </div>
         </a>
         <a class="card" href="https://www.s5-style.com/11613/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-06.webp" alt="サンフロロシステム株式会社" loading="lazy"></div>
+          <div class="card-img"><img src="images/s5-style-07.webp" alt="サンフロロシステム株式会社" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">サンフロロシステム株式会社</div>
@@ -1205,21 +1249,112 @@
           </div>
         </a>
         <a class="card" href="https://www.s5-style.com/11612/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-07.webp" alt="SHIBUYA STREET LIVE｜公式サイト" loading="lazy"></div>
+          <div class="card-img"><img src="images/s5-style-08.webp" alt="SHIBUYA STREET LIVE｜公式サイト" loading="lazy"></div>
           <div class="card-body">
             
             <div class="title-en">SHIBUYA STREET LIVE｜公式サイト</div>
             
           </div>
-        </a>
-        <a class="card" href="https://www.s5-style.com/11611/" target="_blank" rel="noopener">
-          <div class="card-img"><img src="images/s5-style-08.webp" alt="peace put｜世界中の街に、ひとときの平和を置いていく。" loading="lazy"></div>
+        </a></div>
+      </section>
+      <section>
+        <h2>Sankou Design</h2>
+        <div class="grid">
+        <a class="card" href="https://sankoudesign.com/web/mount/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-01.jpg" alt="mount inc." loading="lazy"></div>
           <div class="card-body">
             
-            <div class="title-en">peace put｜世界中の街に、ひとときの平和を置いていく。</div>
+            <div class="title-en">mount inc.</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://sankoudesign.com/web/runners50th/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-02.jpg" alt="株式会社アールビーズ 創立50周年特設サイト" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">株式会社アールビーズ 創立50周年特設サイト</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://sankoudesign.com/web/gatechnologies-midcareer/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-03.jpg" alt="中途採用 特設サイト | 株式会社GA technologies" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">中途採用 特設サイト | 株式会社GA technologies</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://sankoudesign.com/web/meikei/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-04.jpg" alt="Meikei High School 茗溪学園中学校高等学校" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">Meikei High School 茗溪学園中学校高等学校</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://sankoudesign.com/web/shirahone/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-05.jpg" alt="【公式】白骨温泉" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">【公式】白骨温泉</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://sankoudesign.com/web/tokyurenewal/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-06.jpg" alt="東急リニューアル株式会社設計部" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">東急リニューアル株式会社設計部</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://sankoudesign.com/web/fusaefukuki/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-07.jpg" alt="Fusae Fukuki" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">Fusae Fukuki</div>
+            
+          </div>
+        </a>
+        <a class="card" href="https://sankoudesign.com/web/dimps-recruit/" target="_blank" rel="noopener">
+          <div class="card-img"><img src="images/sankou-design-08.jpg" alt="株式会社ディンプス採用サイト" loading="lazy"></div>
+          <div class="card-body">
+            
+            <div class="title-en">株式会社ディンプス採用サイト</div>
             
           </div>
         </a></div>
       </section>
+  </div>
+
+  <script>
+    const PASSWORD = "design2026";
+    const SESSION_KEY = "dt_auth";
+
+    function checkPassword() {
+      const val = document.getElementById("pw-input").value;
+      if (val === PASSWORD) {
+        sessionStorage.setItem(SESSION_KEY, "1");
+        unlock();
+      } else {
+        document.getElementById("pw-error").textContent = "パスワードが違います";
+        document.getElementById("pw-input").value = "";
+        document.getElementById("pw-input").focus();
+      }
+    }
+
+    function unlock() {
+      document.getElementById("pw-overlay").classList.add("hidden");
+      document.getElementById("main-content").classList.add("visible");
+    }
+
+    // Enterキーでも送信
+    document.getElementById("pw-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") checkPassword();
+    });
+
+    // セッション内で認証済みならスキップ
+    if (sessionStorage.getItem(SESSION_KEY) === "1") unlock();
+  </script>
 </body>
 </html>

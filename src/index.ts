@@ -1099,12 +1099,79 @@ function buildHtml(
     .summary { font-size: 0.75rem; color: #888; line-height: 1.5; margin-top: 3px; }
     .card:hover .title-ja { color: #ccc; }
     .card:hover .title-en { color: #ccc; }
+    /* ── Password overlay ── */
+    #pw-overlay {
+      position: fixed; inset: 0; background: #f6f6f6;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    #pw-overlay.hidden { display: none; }
+    #pw-box {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    #pw-box h2 { font-size: 1rem; font-weight: 600; color: #111; letter-spacing: 0.05em; }
+    #pw-box input {
+      border: 1px solid #ddd; padding: 10px 14px; font-size: 0.9rem;
+      outline: none; width: 220px; background: #fff;
+    }
+    #pw-box input:focus { border-color: #aaa; }
+    #pw-box button {
+      width: 220px; padding: 10px; background: #111; color: #fff;
+      border: none; font-size: 0.85rem; cursor: pointer; letter-spacing: 0.05em;
+    }
+    #pw-box button:hover { background: #333; }
+    #pw-error { font-size: 0.78rem; color: #c00; }
+    #main-content { display: none; }
+    #main-content.visible { display: block; }
   </style>
 </head>
 <body>
-  <h1>Design Trends — ${date}</h1>
-  <div class="meta">Generated on ${new Date().toISOString()}</div>
-  ${sectionsHtml}
+  <!-- パスワード画面 -->
+  <div id="pw-overlay">
+    <div id="pw-box">
+      <h2>DESIGN TRENDS</h2>
+      <input type="password" id="pw-input" placeholder="Password" autofocus />
+      <div id="pw-error"></div>
+      <button onclick="checkPassword()">ENTER</button>
+    </div>
+  </div>
+
+  <!-- コンテンツ -->
+  <div id="main-content">
+    <h1>Design Trends — ${date}</h1>
+    <div class="meta">Generated on ${new Date().toISOString()}</div>
+    ${sectionsHtml}
+  </div>
+
+  <script>
+    const PASSWORD = "design2026";
+    const SESSION_KEY = "dt_auth";
+
+    function checkPassword() {
+      const val = document.getElementById("pw-input").value;
+      if (val === PASSWORD) {
+        sessionStorage.setItem(SESSION_KEY, "1");
+        unlock();
+      } else {
+        document.getElementById("pw-error").textContent = "パスワードが違います";
+        document.getElementById("pw-input").value = "";
+        document.getElementById("pw-input").focus();
+      }
+    }
+
+    function unlock() {
+      document.getElementById("pw-overlay").classList.add("hidden");
+      document.getElementById("main-content").classList.add("visible");
+    }
+
+    // Enterキーでも送信
+    document.getElementById("pw-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") checkPassword();
+    });
+
+    // セッション内で認証済みならスキップ
+    if (sessionStorage.getItem(SESSION_KEY) === "1") unlock();
+  </script>
 </body>
 </html>`;
 }

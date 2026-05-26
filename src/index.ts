@@ -53,6 +53,7 @@ async function downloadImage(
           Referer: new URL(url).origin + "/",
           Accept: "image/webp,image/avif,image/*,*/*;q=0.8",
         },
+        rejectUnauthorized: false,
       },
       (res) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
@@ -862,6 +863,65 @@ async function scrapeHoverstates(page: Page): Promise<ScrapedData> {
   return { source: "Hoverstat.es", items };
 }
 
+async function scrapeEyeOnDesign(_page: Page): Promise<ScrapedData> {
+  console.log("Scraping Eye on Design...");
+  const items: DesignItem[] = [];
+  try {
+    const body = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://eyeondesign.aiga.org/wp-json/wp/v2/posts?per_page=8&_embed=true",
+        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" }, rejectUnauthorized: false } as Parameters<typeof https.get>[1],
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
+    });
+    const posts = JSON.parse(body) as Array<{
+      title: { rendered: string }; link: string;
+      _embedded?: { "wp:featuredmedia"?: Array<{ source_url?: string }> };
+    }>;
+    for (const post of posts.slice(0, 8)) {
+      const title = post.title.rendered.replace(/&amp;/g, "&").replace(/&#[0-9]+;/g, "").replace(/<[^>]+>/g, "").trim();
+      const imageUrl = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "";
+      items.push({ title, url: post.link, imageUrl: imageUrl || undefined });
+    }
+  } catch (err) { console.warn(`EyeOnDesign warning: ${(err as Error).message}`); }
+  return { source: "Eye on Design", items };
+}
+
+async function scrapeGodly(page: Page): Promise<ScrapedData> {
+  console.log("Scraping Godly...");
+  const items: DesignItem[] = [];
+  try {
+    await page.goto("https://godly.website", { waitUntil: "networkidle", timeout: 30000 });
+    // Godly is a canvas-based app — wait for site cards to render
+    await page.waitForTimeout(2000);
+    const results = await page.evaluate(() => {
+      const out: { title: string; url: string; imageUrl: string }[] = [];
+      const seen = new Set<string>();
+      // Cards are <a href="/[slug]"> elements containing an img
+      document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((a) => {
+        const href = a.getAttribute("href") || "";
+        // Site entries are short slugs like /some-studio (not /info, /)
+        if (!href.match(/^\/[a-z0-9][a-z0-9-]+$/) || href === "/info") return;
+        const fullUrl = `https://godly.website${href}`;
+        if (seen.has(fullUrl)) return;
+        seen.add(fullUrl);
+        const img = a.querySelector<HTMLImageElement>("img");
+        const title = (img?.alt || href.replace(/^\//, "").replace(/-/g, " ")).trim();
+        const imageUrl = img?.src || img?.getAttribute("data-src") || "";
+        if (imageUrl.startsWith("data:")) return;
+        out.push({ title, url: fullUrl, imageUrl });
+      });
+      return out.slice(0, 8);
+    });
+    items.push(...results.filter(r => r.title).map(r => ({
+      title: r.title, url: r.url, imageUrl: r.imageUrl || undefined,
+    })));
+  } catch (err) { console.warn(`Godly warning: ${(err as Error).message}`); }
+  return { source: "Godly", items };
+}
+
 async function scrapeBpando(_page: Page): Promise<ScrapedData> {
   console.log("Scraping BP&O...");
   const items: DesignItem[] = [];
@@ -1315,6 +1375,10 @@ async function main() {
     const pageHS = await context.newPage();
     results.push(await scrapeHoverstates(pageHS));
     await pageHS.close();
+
+    const pageEOD = await context.newPage();
+    results.push(await scrapeEyeOnDesign(pageEOD));
+    await pageEOD.close();
 
     const pageBP = await context.newPage();
     results.push(await scrapeBpando(pageBP));

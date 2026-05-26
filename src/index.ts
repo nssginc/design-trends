@@ -1558,25 +1558,9 @@ async function main() {
     results.push(await scrapeBpando(pageBP));
     await pageBP.close();
 
-    const page14 = await context.newPage();
-    results.push(await scrapeS5Style(page14));
-    await page14.close();
-
-    const page16 = await context.newPage();
-    results.push(await scrapeSankoudesign(page16));
-    await page16.close();
-
     const pageDL = await context.newPage();
     results.push(await scrapeTheDieline(pageDL));
     await pageDL.close();
-
-    const pageMU = await context.newPage();
-    results.push(await scrapeMuuuuu(pageMU));
-    await pageMU.close();
-
-    const pageMK = await context.newPage();
-    results.push(await scrapeMekikiki(pageMK));
-    await pageMK.close();
 
     const pageCM = await context.newPage();
     results.push(await scrapeCanadaModern(pageCM));
@@ -1585,6 +1569,22 @@ async function main() {
     const pageDW = await context.newPage();
     results.push(await scrapeDrawwwers(pageDW));
     await pageDW.close();
+
+    const page14 = await context.newPage();
+    results.push(await scrapeS5Style(page14));
+    await page14.close();
+
+    const page16 = await context.newPage();
+    results.push(await scrapeSankoudesign(page16));
+    await page16.close();
+
+    const pageMK = await context.newPage();
+    results.push(await scrapeMekikiki(pageMK));
+    await pageMK.close();
+
+    const pageMU = await context.newPage();
+    results.push(await scrapeMuuuuu(pageMU));
+    await pageMU.close();
   } finally {
     await browser.close();
   }

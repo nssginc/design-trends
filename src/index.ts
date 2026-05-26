@@ -1484,6 +1484,10 @@ async function main() {
   const results: ScrapedData[] = [];
 
   try {
+    const pageVJ = await context.newPage();
+    results.push(await scrapeVisualJournal(pageVJ));
+    await pageVJ.close();
+
     const page1 = await context.newPage();
     results.push(await scrapeSiteInspire(page1));
     await page1.close();
@@ -1553,10 +1557,6 @@ async function main() {
     const pageBP = await context.newPage();
     results.push(await scrapeBpando(pageBP));
     await pageBP.close();
-
-    const pageVJ = await context.newPage();
-    results.push(await scrapeVisualJournal(pageVJ));
-    await pageVJ.close();
 
     const page14 = await context.newPage();
     results.push(await scrapeS5Style(page14));

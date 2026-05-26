@@ -979,6 +979,176 @@ async function scrapeVisualJournal(_page: Page): Promise<ScrapedData> {
   return { source: "Visual Journal", items };
 }
 
+async function scrapeTheDieline(_page: Page): Promise<ScrapedData> {
+  console.log("Scraping The Dieline...");
+  const items: DesignItem[] = [];
+  try {
+    const body = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://thedieline.com/wp-json/wp/v2/posts?per_page=8&_embed=true",
+        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } },
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
+    });
+    const posts = JSON.parse(body) as Array<{
+      title: { rendered: string }; link: string;
+      _embedded?: { "wp:featuredmedia"?: Array<{ source_url?: string }> };
+    }>;
+    for (const post of posts.slice(0, 8)) {
+      const title = post.title.rendered.replace(/&amp;/g, "&").replace(/&#[0-9]+;/g, "").replace(/&#8217;/g, "'").replace(/<[^>]+>/g, "").trim();
+      const imageUrl = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "";
+      items.push({ title, url: post.link, imageUrl: imageUrl || undefined });
+    }
+  } catch (err) { console.warn(`TheDieline warning: ${(err as Error).message}`); }
+  return { source: "The Dieline", items };
+}
+
+async function scrapeMuuuuu(_page: Page): Promise<ScrapedData> {
+  console.log("Scraping Muuuuu.org...");
+  const items: DesignItem[] = [];
+  try {
+    const body = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://muuuuu.org/wp-json/wp/v2/posts?per_page=8&_embed=true",
+        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } },
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
+    });
+    const posts = JSON.parse(body) as Array<{
+      title: { rendered: string }; link: string;
+      _embedded?: { "wp:featuredmedia"?: Array<{ source_url?: string; media_details?: { sizes?: Record<string, { source_url: string }> } }> };
+    }>;
+    for (const post of posts.slice(0, 8)) {
+      const title = post.title.rendered.replace(/&amp;/g, "&").replace(/&#[0-9]+;/g, "").replace(/<[^>]+>/g, "").trim();
+      const media = post._embedded?.["wp:featuredmedia"]?.[0];
+      const imageUrl = media?.media_details?.sizes?.["large"]?.source_url || media?.source_url || "";
+      items.push({ title, url: post.link, imageUrl: imageUrl || undefined });
+    }
+  } catch (err) { console.warn(`Muuuuu warning: ${(err as Error).message}`); }
+  return { source: "Muuuuu.org", items };
+}
+
+async function scrapeMekikiki(_page: Page): Promise<ScrapedData> {
+  console.log("Scraping Mekikiki...");
+  const items: DesignItem[] = [];
+  try {
+    const body = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://mekikiki.com/wp-json/wp/v2/posts?per_page=8&_embed=true",
+        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } },
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
+    });
+    const posts = JSON.parse(body) as Array<{
+      title: { rendered: string }; link: string;
+      acf?: { serial?: string; url?: string };
+    }>;
+    for (const post of posts.slice(0, 8)) {
+      const title = post.title.rendered.replace(/&amp;/g, "&").replace(/&#[0-9]+;/g, "").replace(/<[^>]+>/g, "").trim();
+      const serial = post.acf?.serial || "";
+      const imageUrl = serial
+        ? `https://mekikiki.com/wp/wp-content/themes/mekikiki-theme/assets/img/single/thumb_${serial}_pc.jpg`
+        : undefined;
+      const description = post.acf?.url || undefined;
+      items.push({ title, url: post.link, imageUrl, description });
+    }
+  } catch (err) { console.warn(`Mekikiki warning: ${(err as Error).message}`); }
+  return { source: "Mekikiki", items };
+}
+
+async function scrapeCanadaModern(_page: Page): Promise<ScrapedData> {
+  console.log("Scraping Canada Modern...");
+  const items: DesignItem[] = [];
+  try {
+    const body = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://canadamodern.org/wp-json/wp/v2/posts?per_page=8",
+        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } },
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
+    });
+    const posts = JSON.parse(body) as Array<{ title: { rendered: string }; link: string }>;
+
+    // Fetch og:image per post page in parallel (max 8)
+    const fetchOgImage = (url: string): Promise<string> =>
+      new Promise((resolve) => {
+        const req = https.get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+          let d = "";
+          res.on("data", (c) => { d += c; });
+          res.on("end", () => {
+            const m = d.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/);
+            resolve(m ? m[1] : "");
+          });
+        });
+        req.setTimeout(10000, () => { req.destroy(); resolve(""); });
+        req.on("error", () => resolve(""));
+      });
+
+    const imageUrls = await Promise.all(posts.slice(0, 8).map((p) => fetchOgImage(p.link)));
+    for (let i = 0; i < posts.slice(0, 8).length; i++) {
+      const post = posts[i];
+      const title = post.title.rendered.replace(/&amp;/g, "&").replace(/&#[0-9]+;/g, "").replace(/<[^>]+>/g, "").trim();
+      items.push({ title, url: post.link, imageUrl: imageUrls[i] || undefined });
+    }
+  } catch (err) { console.warn(`CanadaModern warning: ${(err as Error).message}`); }
+  return { source: "Canada Modern", items };
+}
+
+async function scrapeDrawwwers(page: Page): Promise<ScrapedData> {
+  console.log("Scraping Drawwwers...");
+  const items: DesignItem[] = [];
+  try {
+    await page.goto("https://drawwwers.com/popular", {
+      waitUntil: "networkidle",
+      timeout: 30000,
+    });
+    await page.waitForTimeout(2000);
+
+    const results = await page.evaluate(() => {
+      const out: { title: string; url: string; imageUrl: string }[] = [];
+      const seen = new Set<string>();
+
+      // Drawwwers renders bookmark cards dynamically; try multiple selector patterns
+      const cards = document.querySelectorAll<HTMLElement>(
+        ".bookmark, [class*='bookmark'], .site-card, .card, [data-id]"
+      );
+
+      cards.forEach((card) => {
+        const link = card.querySelector<HTMLAnchorElement>("a[href]");
+        const img = card.querySelector<HTMLImageElement>("img");
+        const titleEl = card.querySelector<HTMLElement>(
+          ".title, .site-title, [class*='title'], h2, h3"
+        );
+
+        const href = link?.getAttribute("href") || card.querySelector<HTMLAnchorElement>("[href*='drawwwers']")?.href || "";
+        if (!href || seen.has(href)) return;
+        seen.add(href);
+
+        const title = (titleEl?.textContent || img?.alt || "").trim();
+        if (!title) return;
+
+        const imageUrl = img?.src && !img.src.startsWith("data:") ? img.src : (img?.getAttribute("data-src") || "");
+        const fullUrl = href.startsWith("http") ? href : `https://drawwwers.com${href}`;
+        out.push({ title, url: fullUrl, imageUrl });
+      });
+      return out.slice(0, 8);
+    });
+
+    items.push(...results.filter(r => r.title).map(r => ({
+      title: r.title, url: r.url, imageUrl: r.imageUrl || undefined,
+    })));
+  } catch (err) { console.warn(`Drawwwers warning: ${(err as Error).message}`); }
+  return { source: "Drawwwers", items };
+}
+
 // ── Translation ───────────────────────────────────────────────────────────────
 
 interface TranslationResult {
@@ -1395,6 +1565,26 @@ async function main() {
     const page16 = await context.newPage();
     results.push(await scrapeSankoudesign(page16));
     await page16.close();
+
+    const pageDL = await context.newPage();
+    results.push(await scrapeTheDieline(pageDL));
+    await pageDL.close();
+
+    const pageMU = await context.newPage();
+    results.push(await scrapeMuuuuu(pageMU));
+    await pageMU.close();
+
+    const pageMK = await context.newPage();
+    results.push(await scrapeMekikiki(pageMK));
+    await pageMK.close();
+
+    const pageCM = await context.newPage();
+    results.push(await scrapeCanadaModern(pageCM));
+    await pageCM.close();
+
+    const pageDW = await context.newPage();
+    results.push(await scrapeDrawwwers(pageDW));
+    await pageDW.close();
   } finally {
     await browser.close();
   }

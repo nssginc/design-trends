@@ -535,25 +535,29 @@ async function scrapeKlikkentheke(page: Page): Promise<ScrapedData> {
   console.log("Scraping Klikkentheke...");
   const items: DesignItem[] = [];
   try {
-    // Actual entries are at /catalogue/[slug]/ — no subcategory segment
-    const entryUrls = await new Promise<string[]>((resolve, reject) => {
-      const req = https.get(
-        "https://klikkentheke.com/catalogue/",
-        { headers: { "User-Agent": "Mozilla/5.0", Accept: "text/html" } },
-        (res) => {
-          let data = "";
-          res.on("data", (c) => { data += c; });
-          res.on("end", () => {
-            const matches = [...data.matchAll(/href="(https:\/\/klikkentheke\.com\/catalogue\/[a-z0-9-]+\/)"/g)];
-            const urls = [...new Set(matches.map((m) => m[1]))].filter(
-              (u) => !/\/(color|style|topic|country|tag|a-z|about|submit|search|page)\//i.test(u)
-            );
-            resolve(urls.slice(0, 8));
-          });
+    // Entries are JS-rendered — use Playwright to get the catalogue page
+    await page.goto("https://klikkentheke.com/catalogue/", {
+      waitUntil: "networkidle",
+      timeout: 30000,
+    });
+    await page.waitForTimeout(1500);
+
+    const entryUrls = await page.evaluate(() => {
+      const seen = new Set<string>();
+      const urls: string[] = [];
+      document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((a) => {
+        const href = a.href;
+        // Match /catalogue/[slug]/ but not /catalogue/topic/... /page/... etc.
+        if (
+          href.match(/\/catalogue\/[a-z0-9-]+\/$/) &&
+          !/\/(topic|color|style|country|tag|page|a-z|about|submit|search)\//i.test(href) &&
+          !seen.has(href)
+        ) {
+          seen.add(href);
+          urls.push(href);
         }
-      );
-      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
-      req.on("error", reject);
+      });
+      return urls.slice(0, 8);
     });
 
     // Fetch og:image and og:title from each entry page

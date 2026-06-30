@@ -983,6 +983,50 @@ async function scrapeVisualJournal(_page: Page): Promise<ScrapedData> {
   return { source: "Visual Journal", items };
 }
 
+async function scrapeLogosystem(_page: Page): Promise<ScrapedData> {
+  console.log("Scraping Logosystem...");
+  const items: DesignItem[] = [];
+  try {
+    // Get newest logo URLs from sitemap
+    const sitemap = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://logosystem.co/sitemap.xml",
+        { headers: { "User-Agent": "Mozilla/5.0" } },
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
+    });
+
+    const logoUrls = [...sitemap.matchAll(/<loc>(https:\/\/logosystem\.co\/logo\/[^<]+)<\/loc>/g)]
+      .map((m) => m[1])
+      .slice(0, 8);
+
+    // Fetch og:title and og:image from each logo page in parallel
+    const fetchMeta = (url: string): Promise<{ title: string; image: string }> =>
+      new Promise((resolve) => {
+        const req = https.get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+          let d = "";
+          res.on("data", (c) => { d += c; });
+          res.on("end", () => {
+            const title = (d.match(/"og:title"[^>]*content="([^"]+)"|content="([^"]+)"[^>]*property="og:title"/) || [])[1] || "";
+            const image = (d.match(/"og:image"[^>]*content="([^"]+)"|content="([^"]+)"[^>]*property="og:image"/) || [])[1] || "";
+            resolve({ title: title.replace(/\s*\|\s*Logosystem\s*$/i, "").trim(), image });
+          });
+        });
+        req.setTimeout(10000, () => { req.destroy(); resolve({ title: "", image: "" }); });
+        req.on("error", () => resolve({ title: "", image: "" }));
+      });
+
+    const metas = await Promise.all(logoUrls.map(fetchMeta));
+    for (let i = 0; i < logoUrls.length; i++) {
+      const { title, image } = metas[i];
+      if (title) items.push({ title, url: logoUrls[i], imageUrl: image || undefined });
+    }
+  } catch (err) { console.warn(`Logosystem warning: ${(err as Error).message}`); }
+  return { source: "Logosystem", items };
+}
+
 async function scrapeTheDieline(_page: Page): Promise<ScrapedData> {
   console.log("Scraping The Dieline...");
   const items: DesignItem[] = [];
@@ -1561,6 +1605,10 @@ async function main() {
     const pageBP = await context.newPage();
     results.push(await scrapeBpando(pageBP));
     await pageBP.close();
+
+    const pageLS = await context.newPage();
+    results.push(await scrapeLogosystem(pageLS));
+    await pageLS.close();
 
     const pageDL = await context.newPage();
     results.push(await scrapeTheDieline(pageDL));

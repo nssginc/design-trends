@@ -496,30 +496,7 @@ async function scrapeMinimalissimo(page: Page): Promise<ScrapedData> {
   return { source: "Minimalissimo", items };
 }
 
-async function scrapeMinimalSites(_page: Page): Promise<ScrapedData> {
-  console.log("Scraping Minimal Sites...");
-  const items: DesignItem[] = [];
-  try {
-    const result = spawnSync("curl", [
-      "-s", "-m", "15", "-A", "Mozilla/5.0",
-      "https://minimalsites.com/wp-json/wp/v2/website?per_page=8&_embed=true",
-    ], { encoding: "utf8", timeout: 20000 });
-    if (result.error) throw result.error;
-    const data = JSON.parse(result.stdout);
-    if (!Array.isArray(data)) throw new Error(`unexpected response: ${JSON.stringify(data).slice(0, 100)}`);
-    const posts = data as Array<{
-      title: { rendered: string };
-      link: string;
-      _embedded?: { "wp:featuredmedia"?: Array<{ source_url?: string }> };
-    }>;
-    for (const post of posts.slice(0, 8)) {
-      const title = post.title.rendered.replace(/&amp;/g, "&").replace(/&#[0-9]+;/g, "").trim();
-      const imageUrl = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "";
-      items.push({ title, url: post.link, imageUrl: imageUrl || undefined });
-    }
-  } catch (err) { console.warn(`MinimalSites warning: ${(err as Error).message}`); }
-  return { source: "Minimal Sites", items };
-}
+
 
 async function scrapeSiiimple(page: Page): Promise<ScrapedData> {
   console.log("Scraping Siiimple...");
@@ -1612,10 +1589,6 @@ async function main() {
     const page6 = await context.newPage();
     results.push(await scrapeMinimalissimo(page6));
     await page6.close();
-
-    const page7 = await context.newPage();
-    results.push(await scrapeMinimalSites(page7));
-    await page7.close();
 
     const page8 = await context.newPage();
     results.push(await scrapeSiiimple(page8));

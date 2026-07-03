@@ -5,6 +5,7 @@ import * as path from "path";
 import * as https from "https";
 import * as http from "http";
 import { spawnSync } from "child_process";
+import sharp from "sharp";
 
 interface DesignItem {
   title: string;
@@ -89,6 +90,21 @@ async function downloadImage(
   });
 }
 
+async function compressImage(filePath: string): Promise<void> {
+  const ext = path.extname(filePath).toLowerCase().slice(1);
+  const tmpPath = filePath + ".tmp";
+  try {
+    const s = sharp(filePath).resize(640, undefined, { withoutEnlargement: true });
+    if (ext === "webp") await s.webp({ quality: 75 }).toFile(tmpPath);
+    else if (ext === "png") await s.jpeg({ quality: 80 }).toFile(tmpPath);
+    else if (ext === "jpg" || ext === "jpeg") await s.jpeg({ quality: 80 }).toFile(tmpPath);
+    else return;
+    fs.renameSync(tmpPath, filePath);
+  } catch {
+    try { fs.unlinkSync(tmpPath); } catch {}
+  }
+}
+
 async function downloadAllImages(
   data: ScrapedData[],
   imageDir: string
@@ -108,9 +124,11 @@ async function downloadAllImages(
 
       process.stdout.write(`  Downloading ${filename}...`);
       const ok = await downloadImage(item.imageUrl, destPath);
+      if (ok) {
+        await compressImage(destPath);
+        urlToLocal.set(item.imageUrl, filename);
+      }
       console.log(ok ? " ok" : " failed");
-
-      if (ok) urlToLocal.set(item.imageUrl, filename);
     }
   }
 

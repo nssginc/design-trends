@@ -988,9 +988,10 @@ async function scrapeCSSDesignAwards(page: Page): Promise<ScrapedData> {
   const items: DesignItem[] = [];
   try {
     await page.goto("https://www.cssdesignawards.com/wotd-award-winners", {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 30000,
     });
+    await page.waitForSelector(".single-project", { timeout: 10000 });
 
     const results = await page.evaluate(() => {
       const out: { title: string; url: string; imageUrl: string }[] = [];

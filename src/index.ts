@@ -983,6 +983,33 @@ async function scrapeVisualJournal(_page: Page): Promise<ScrapedData> {
   return { source: "Visual Journal", items };
 }
 
+async function scrapeCSSDesignAwards(_page: Page): Promise<ScrapedData> {
+  console.log("Scraping CSS Design Awards...");
+  const items: DesignItem[] = [];
+  try {
+    const html = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://www.cssdesignawards.com/wotd-award-winners",
+        { headers: { "User-Agent": "Mozilla/5.0" } },
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
+    });
+
+    // Extract pairs of image + title + url
+    const entryPattern = /<img src="(\/cdasites\/[^"]+)"[^>]*>\s*(?:<[^>]+>\s*)*<a href="(\/sites\/[^"]+)"[^>]*><\/a>[\s\S]*?<h3 class="single-project__title"><a href="\/sites\/[^"]+"[^>]*>([^<]+)<\/a>/g;
+    for (const m of html.matchAll(entryPattern)) {
+      if (items.length >= 8) break;
+      const imageUrl = `https://www.cssdesignawards.com${m[1]}`;
+      const url = `https://www.cssdesignawards.com${m[2]}`;
+      const title = m[3].replace(/&amp;/g, "&").replace(/&reg;/g, "®").trim();
+      if (title) items.push({ title, url, imageUrl });
+    }
+  } catch (err) { console.warn(`CSSDesignAwards warning: ${(err as Error).message}`); }
+  return { source: "CSS Design Awards", items };
+}
+
 async function scrapeLogosystem(_page: Page): Promise<ScrapedData> {
   console.log("Scraping Logosystem...");
   const items: DesignItem[] = [];
@@ -1605,6 +1632,10 @@ async function main() {
     const pageBP = await context.newPage();
     results.push(await scrapeBpando(pageBP));
     await pageBP.close();
+
+    const pageCDA = await context.newPage();
+    results.push(await scrapeCSSDesignAwards(pageCDA));
+    await pageCDA.close();
 
     const pageLS = await context.newPage();
     results.push(await scrapeLogosystem(pageLS));

@@ -481,10 +481,11 @@ async function scrapeMinimalSites(page: Page): Promise<ScrapedData> {
   console.log("Scraping Minimal Sites...");
   const items: DesignItem[] = [];
   try {
-    // Use browser fetch via Playwright to bypass Cloudflare TLS fingerprint blocking
+    // Navigate to the site first to establish origin, then fetch the API from same origin
+    await page.goto("https://minimalsites.com/", { waitUntil: "domcontentloaded", timeout: 20000 });
     const body = await page.evaluate(async () => {
       const res = await fetch(
-        "https://minimalsites.com/wp-json/wp/v2/website?per_page=8&_embed=true",
+        "/wp-json/wp/v2/website?per_page=8&_embed=true",
         { headers: { Accept: "application/json" } }
       );
       return res.text();
@@ -1002,35 +1003,29 @@ async function scrapeVisualJournal(_page: Page): Promise<ScrapedData> {
   return { source: "Visual Journal", items };
 }
 
-async function scrapeCSSDesignAwards(page: Page): Promise<ScrapedData> {
+async function scrapeCSSDesignAwards(_page: Page): Promise<ScrapedData> {
   console.log("Scraping CSS Design Awards...");
   const items: DesignItem[] = [];
   try {
-    await page.goto("https://www.cssdesignawards.com/wotd-award-winners", {
-      waitUntil: "networkidle",
-      timeout: 30000,
-    });
-    await page.waitForSelector(".single-project", { timeout: 10000 });
-
-    const results = await page.evaluate(() => {
-      const out: { title: string; url: string; imageUrl: string }[] = [];
-      document.querySelectorAll<HTMLElement>(".single-project").forEach((el) => {
-        if (out.length >= 8) return;
-        const titleEl = el.querySelector<HTMLAnchorElement>("h3.single-project__title a");
-        const linkEl = el.querySelector<HTMLAnchorElement>("a.sp__full-size-link, a[href*='/sites/']");
-        const imgEl = el.querySelector<HTMLImageElement>("img[src*='cdasites']");
-        const title = titleEl?.textContent?.trim() || "";
-        const href = titleEl?.getAttribute("href") || linkEl?.getAttribute("href") || "";
-        const imgSrc = imgEl?.getAttribute("src") || "";
-        if (!title || !href) return;
-        const url = href.startsWith("http") ? href : `https://www.cssdesignawards.com${href}`;
-        const imageUrl = imgSrc.startsWith("http") ? imgSrc : `https://www.cssdesignawards.com${imgSrc}`;
-        out.push({ title, url, imageUrl });
-      });
-      return out;
+    // Node.js https with minimal UA bypasses Cloudflare (headless Playwright is detected/blocked)
+    const html = await new Promise<string>((resolve, reject) => {
+      const req = https.get(
+        "https://www.cssdesignawards.com/wotd-award-winners",
+        { headers: { "User-Agent": "Mozilla/5.0", Accept: "text/html" } },
+        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+      );
+      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      req.on("error", reject);
     });
 
-    items.push(...results.map(r => ({ title: r.title, url: r.url, imageUrl: r.imageUrl || undefined })));
+    const entryPattern = /<img src="(\/cdasites\/[^"]+)"[^>]*>[\s\S]*?<a href="(\/sites\/[^"]+)"[^>]*><\/a>[\s\S]*?<h3 class="single-project__title"><a href="\/sites\/[^"]+"[^>]*>([^<]+)<\/a>/g;
+    for (const m of html.matchAll(entryPattern)) {
+      if (items.length >= 8) break;
+      const imageUrl = `https://www.cssdesignawards.com${m[1]}`;
+      const url = `https://www.cssdesignawards.com${m[2]}`;
+      const title = m[3].replace(/&amp;/g, "&").replace(/&reg;/g, "®").trim();
+      if (title) items.push({ title, url, imageUrl });
+    }
   } catch (err) { console.warn(`CSSDesignAwards warning: ${(err as Error).message}`); }
   return { source: "CSS Design Awards", items };
 }

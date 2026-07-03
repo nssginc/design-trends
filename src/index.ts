@@ -477,23 +477,17 @@ async function scrapeMinimalissimo(page: Page): Promise<ScrapedData> {
   return { source: "Minimalissimo", items };
 }
 
-async function scrapeMinimalSites(_page: Page): Promise<ScrapedData> {
+async function scrapeMinimalSites(page: Page): Promise<ScrapedData> {
   console.log("Scraping Minimal Sites...");
   const items: DesignItem[] = [];
   try {
-    // Use WP REST API directly (no Playwright needed for JSON)
-    const body = await new Promise<string>((resolve, reject) => {
-      const req = https.get(
+    // Use browser fetch via Playwright to bypass Cloudflare TLS fingerprint blocking
+    const body = await page.evaluate(async () => {
+      const res = await fetch(
         "https://minimalsites.com/wp-json/wp/v2/website?per_page=8&_embed=true",
-        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } },
-        (res) => {
-          let data = "";
-          res.on("data", (chunk) => { data += chunk; });
-          res.on("end", () => resolve(data));
-        }
+        { headers: { Accept: "application/json" } }
       );
-      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
-      req.on("error", reject);
+      return res.text();
     });
     const posts = JSON.parse(body) as Array<{
       title: { rendered: string };
@@ -871,23 +865,48 @@ async function scrapeEyeOnDesign(_page: Page): Promise<ScrapedData> {
   console.log("Scraping Eye on Design...");
   const items: DesignItem[] = [];
   try {
-    const body = await new Promise<string>((resolve, reject) => {
+    // REST API removed — scrape homepage for article links, then fetch og:image per article
+    const homeHtml = await new Promise<string>((resolve, reject) => {
       const req = https.get(
-        "https://eyeondesign.aiga.org/wp-json/wp/v2/posts?per_page=8&_embed=true",
-        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" }, rejectUnauthorized: false } as Parameters<typeof https.get>[1],
+        "https://eyeondesign.aiga.org/",
+        { headers: { "User-Agent": "Mozilla/5.0" } },
         (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
       );
       req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
       req.on("error", reject);
     });
-    const posts = JSON.parse(body) as Array<{
-      title: { rendered: string }; link: string;
-      _embedded?: { "wp:featuredmedia"?: Array<{ source_url?: string }> };
-    }>;
-    for (const post of posts.slice(0, 8)) {
-      const title = post.title.rendered.replace(/&amp;/g, "&").replace(/&#[0-9]+;/g, "").replace(/<[^>]+>/g, "").trim();
-      const imageUrl = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "";
-      items.push({ title, url: post.link, imageUrl: imageUrl || undefined });
+
+    const seen = new Set<string>();
+    const articleUrls: string[] = [];
+    for (const m of homeHtml.matchAll(/href="(\/[a-z0-9]+(?:-[a-z0-9]+)+\/)"/g)) {
+      const url = `https://eyeondesign.aiga.org${m[1]}`;
+      if (!seen.has(url) && !/category|tag|author|page|wp-json/.test(url)) {
+        seen.add(url);
+        articleUrls.push(url);
+      }
+      if (articleUrls.length >= 8) break;
+    }
+
+    const fetchMeta = (url: string): Promise<{ title: string; image: string }> =>
+      new Promise((resolve) => {
+        const req = https.get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+          let d = "";
+          res.on("data", (c) => { d += c; });
+          res.on("end", () => {
+            const title = (d.match(/property="og:title"\s+content="([^"]+)"/) || d.match(/content="([^"]+)"\s+property="og:title"/) || [])[1] || "";
+            const imgRel = (d.match(/property="og:image"\s+content="([^"]+)"/) || d.match(/content="([^"]+)"\s+property="og:image"/) || [])[1] || "";
+            const image = imgRel.startsWith("http") ? imgRel : imgRel ? `https://eyeondesign.aiga.org${imgRel}` : "";
+            resolve({ title, image });
+          });
+        });
+        req.setTimeout(10000, () => { req.destroy(); resolve({ title: "", image: "" }); });
+        req.on("error", () => resolve({ title: "", image: "" }));
+      });
+
+    const metas = await Promise.all(articleUrls.map(fetchMeta));
+    for (let i = 0; i < articleUrls.length; i++) {
+      const { title, image } = metas[i];
+      if (title) items.push({ title, url: articleUrls[i], imageUrl: image || undefined });
     }
   } catch (err) { console.warn(`EyeOnDesign warning: ${(err as Error).message}`); }
   return { source: "Eye on Design", items };
@@ -1113,18 +1132,17 @@ async function scrapeMuuuuu(_page: Page): Promise<ScrapedData> {
   return { source: "Muuuuu.org", items };
 }
 
-async function scrapeMekikiki(_page: Page): Promise<ScrapedData> {
+async function scrapeMekikiki(page: Page): Promise<ScrapedData> {
   console.log("Scraping Mekikiki...");
   const items: DesignItem[] = [];
   try {
-    const body = await new Promise<string>((resolve, reject) => {
-      const req = https.get(
+    // Use browser fetch via Playwright to bypass Cloudflare TLS fingerprint blocking
+    const body = await page.evaluate(async () => {
+      const res = await fetch(
         "https://mekikiki.com/wp-json/wp/v2/posts?per_page=8&_embed=true",
-        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } },
-        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
+        { headers: { Accept: "application/json" } }
       );
-      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
-      req.on("error", reject);
+      return res.text();
     });
     const posts = JSON.parse(body) as Array<{
       title: { rendered: string }; link: string;

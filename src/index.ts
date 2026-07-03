@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as https from "https";
 import * as http from "http";
+import { spawnSync } from "child_process";
 
 interface DesignItem {
   title: string;
@@ -477,20 +478,18 @@ async function scrapeMinimalissimo(page: Page): Promise<ScrapedData> {
   return { source: "Minimalissimo", items };
 }
 
-async function scrapeMinimalSites(page: Page): Promise<ScrapedData> {
+async function scrapeMinimalSites(_page: Page): Promise<ScrapedData> {
   console.log("Scraping Minimal Sites...");
   const items: DesignItem[] = [];
   try {
-    // Navigate to the site first to establish origin, then fetch the API from same origin
-    await page.goto("https://minimalsites.com/", { waitUntil: "domcontentloaded", timeout: 20000 });
-    const body = await page.evaluate(async () => {
-      const res = await fetch(
-        "/wp-json/wp/v2/website?per_page=8&_embed=true",
-        { headers: { Accept: "application/json" } }
-      );
-      return res.text();
-    });
-    const posts = JSON.parse(body) as Array<{
+    const result = spawnSync("curl", [
+      "-s", "-m", "15", "-A", "Mozilla/5.0",
+      "https://minimalsites.com/wp-json/wp/v2/website?per_page=8&_embed=true",
+    ], { encoding: "utf8", timeout: 20000 });
+    if (result.error) throw result.error;
+    const data = JSON.parse(result.stdout);
+    if (!Array.isArray(data)) throw new Error(`unexpected response: ${JSON.stringify(data).slice(0, 100)}`);
+    const posts = data as Array<{
       title: { rendered: string };
       link: string;
       _embedded?: { "wp:featuredmedia"?: Array<{ source_url?: string }> };
@@ -638,16 +637,14 @@ async function scrapeMinimalGallery(_page: Page): Promise<ScrapedData> {
   console.log("Scraping Minimal Gallery...");
   const items: DesignItem[] = [];
   try {
-    const body = await new Promise<string>((resolve, reject) => {
-      const req = https.get(
-        "https://minimal.gallery/wp-json/wp/v2/posts?per_page=8&_embed=true",
-        { headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" } },
-        (res) => { let d = ""; res.on("data", (c) => { d += c; }); res.on("end", () => resolve(d)); }
-      );
-      req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
-      req.on("error", reject);
-    });
-    const posts = JSON.parse(body) as Array<{
+    const result = spawnSync("curl", [
+      "-s", "-m", "15", "-A", "Mozilla/5.0",
+      "https://minimal.gallery/wp-json/wp/v2/posts?per_page=8&_embed=true",
+    ], { encoding: "utf8", timeout: 20000 });
+    if (result.error) throw result.error;
+    const data = JSON.parse(result.stdout);
+    if (!Array.isArray(data)) throw new Error(`unexpected response: ${JSON.stringify(data).slice(0, 100)}`);
+    const posts = data as Array<{
       title: { rendered: string }; link: string;
       _embedded?: { "wp:featuredmedia"?: Array<{ source_url?: string }> };
     }>;
